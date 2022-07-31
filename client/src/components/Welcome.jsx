@@ -3,6 +3,8 @@ import { SiEthereum } from "react-icons/si";
 import { BsInfoCircle } from "react-icons/bs";
 
 import { Loader } from ".";
+import { TransactionContext } from "../context/TransactionsContext";
+import { useContext } from "react";
 
 const Input = ({ placeholder, name, type, value, handleChange }) => (
     <input
@@ -17,13 +19,24 @@ const Input = ({ placeholder, name, type, value, handleChange }) => (
 
 const Welcome = () => {
 
-	const connectWallet = () => {
-
-	}
+    const { connectWallet, 
+        CurrentAccount, 
+        formData, 
+        handleChange,
+        sendTransaction } = useContext(TransactionContext);
 
     // Send ether button:
-    const handleSubmit = () => {
+    const handleSubmit = (e) => {
+        // destructuring the form data:
+        const { addressTo, amount, keyword, message } = formData;
 
+        // to prevent page from reloading: (e -> event)
+        e.preventDefault();
+
+        // if any of the field is left blank:
+        if (!addressTo || !amount || !keyword || !message) return;
+        // else:
+        sendTransaction();
     }
 
 	return (
@@ -36,16 +49,18 @@ const Welcome = () => {
 					<p className="text-left mt-5 text-white font-light md:w-9/12 w-11/12 text-base">
             			Explore the crypto world. Buy and sell cryptocurrencies easily on Krypto.
           			</p>
-					<button
-		              type="button"
-        		      onClick={connectWallet}
-              		  className="flex flex-row justify-center items-center my-5 bg-[#2952e3] p-3 rounded-full cursor-pointer hover:bg-[#2546bd]"
-            		>
-						<AiFillPlayCircle className="text-white mr-2" />
-						<p className="text-white text-base font-semibold">
-							Connect Wallet
-						</p>
-		            </button>
+					{!CurrentAccount && (
+                        <button
+                            type="button"
+                            onClick={connectWallet}
+                            className="flex flex-row justify-center items-center my-5 bg-[#2952e3] p-3 rounded-full cursor-pointer hover:bg-[#2546bd]"
+                        >
+                            <AiFillPlayCircle className="text-white mr-2" />
+                            <p className="text-white text-base font-semibold">
+                                Connect Wallet
+                            </p>
+                        </button>
+                    )}
 				</div>
             </div>
 
@@ -70,10 +85,10 @@ const Welcome = () => {
                         </div>
                     </div>
                     <div className="p-5 sm:w-96 w-full flex flex-col justify-start items-center blue-glassmorphism">
-                        <Input placeholder="Address To" name="addressTo" type="text" handleChange={() => {}} />
-                        <Input placeholder="Amount (ETH)" name="amount" type="number" handleChange={() => {}} />
-                        <Input placeholder="Keyword (GIF)" name="keyword" type="text" handleChange={() => {}} />
-                        <Input placeholder="Enter Message" name="message" type="text" handleChange={() => {}} />
+                        <Input placeholder="Address To" name="addressTo" type="text" handleChange={handleChange} />
+                        <Input placeholder="Amount (ETH)" name="amount" type="number" handleChange={handleChange} />
+                        <Input placeholder="Keyword (GIF)" name="keyword" type="text" handleChange={handleChange} />
+                        <Input placeholder="Enter Message" name="message" type="text" handleChange={handleChange} />
 
                         {/* It just adds a hr */}
                         <div className="h-[1px] w-full bg-gray-400 my-2" />

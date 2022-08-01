@@ -25,6 +25,7 @@ export const TransactionProvider = ({ children }) => {
 	const [CurrentAccount, setCurrentAccount] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 	const [transactionsCount, setTransactionsCount] = useState(localStorage.getItem('transactionsCount'));
+	const [transactions, setTransactions] = useState([]);
 
 	// to get the form data from Welcome component:
 	const [formData, setFormData] = useState({ addressTo: '', amount: '', keyword: '', message: '' });
@@ -33,6 +34,30 @@ export const TransactionProvider = ({ children }) => {
 		// https://stackoverflow.com/questions/49792757/react-how-to-update-the-state-with-previous-state
 		// ... = spread operator
 		setFormData((prevState) => ({ ...prevState, [name]: e.target.value }))
+	}
+
+	// get the list of transactions:
+	const getAllTransactions = async() => {
+		try {
+			if (!ethereum) return alert('Please install a wallet (Recommended wallet: Metamask)!');			
+			const transactionContract = getEthereumContract();
+			const availableTransactions = await transactionContract.getAllTransactions();
+
+			// to structre the transactions:
+			const structuredTransactions = availableTransactions.map((transaction) => ({
+				addressTo: transaction.receiver,
+				addressFrom: transaction.sender,
+				timestamp: new Date(transaction.timestamp.toNumber() * 1000).toLocaleString(),
+				message: transaction.message,
+				keyword: transaction.keyword,
+				amount: parseInt(transaction.amount._hex) / (10 ** 18)	// wei to ethers
+			}));
+
+			setTransactions(structuredTransactions);
+			console.log(structuredTransactions);
+		} catch (error) {
+			console.log(error);
+		}
 	}
 
 	const checkIfWalletIsConnected = async () => {
@@ -45,9 +70,7 @@ export const TransactionProvider = ({ children }) => {
 			if (accounts.length) {
 				console.log(accounts);
 				setCurrentAccount(accounts[0]);
-
-				// get the list of transactions: (under construction)
-
+				getAllTransactions();
 			}
 			else {
 				console.log('No account found!');
@@ -56,7 +79,19 @@ export const TransactionProvider = ({ children }) => {
 			console.log(error);
 			throw new Error('No ethereum object detected!');
 		}
+	}
 
+	const chechIfTransactionsExist = async() => {
+		try {
+			const transactionContract = getEthereumContract();
+			const transactionCount = await transactionContract.getTransactionsCount();
+
+			// save in local storage:
+			window.localStorage.setItem("transaction-count: ", transactionCount);
+		} catch (error) {
+			console.log(error);
+			throw new Error('No ethereum object detected!');			
+		}
 	}
 
 	const connectWallet = async () => {
@@ -110,6 +145,8 @@ export const TransactionProvider = ({ children }) => {
 			const transactionCount = await transactionContract.getTransactionsCount();
 			setTransactionsCount(transactionCount.toNumber());
 
+			// reload the page once the transaction is completed:
+			location.reload();
 		} catch (error) {
 			console.log(error);
 			throw new Error('No ethereum object detected!');
@@ -119,13 +156,14 @@ export const TransactionProvider = ({ children }) => {
 	// the function will be called only once when a react component will be mounted:
 	useEffect(() => {
 		checkIfWalletIsConnected();
+		chechIfTransactionsExist();
 	}, []);
 	
 	// we are wrapping our entire react application with all of 
 	// the data that is going to be passed into it:
 	// we are passing 'connectWallet' function to all components
 	return (
-		<TransactionContext.Provider value={{ connectWallet, CurrentAccount, formData, handleChange, sendTransaction }}>
+		<TransactionContext.Provider value={{ connectWallet, CurrentAccount, formData, handleChange, sendTransaction, transactions, isLoading }}>
 			{ children }
 		</TransactionContext.Provider>
 	);
